@@ -116,10 +116,10 @@ void DRV8833Motor::PIDcontrol(int dt) {
 		output = -255;
 	}
 	run(output);
-	Serial.println("-----");
-	Serial.println(error);
-	Serial.println(curSpeed);
-	Serial.println(output);
+	//Serial.println("-----");
+	//Serial.println(error);
+	//Serial.println(curSpeed);
+	//Serial.println(output);
 	prevTacho = curTacho;
 	output_prior = output;
 	error_prior_prior = error_prior;

@@ -60,7 +60,7 @@ void setup() {
 	// sensor initialization
 	Serial.begin(9600);
 	analogReadResolution(8);
-	//initSensors();
+	initSensors();
 	sensor = new MicroMouseSensor(IRFRONT, IRLEFT, IRRIGHT);
 
 	// motor initialization
@@ -123,7 +123,7 @@ void loop() {
 	float dt = (curTime - millis_prev);
 	millis_prev = curTime;
 
-	angle =  angle + (gyro_event.gyro.z - steadyState) * 57.295779513 * dt / 1000;
+	angle = angle + (gyro_event.gyro.z - steadyState) * 57.295779513 * dt / 1000;
 
 	// 2. Motor Speed Control
 	motorL->PIDcontrol(dt);
