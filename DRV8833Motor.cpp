@@ -73,23 +73,24 @@ void DRV8833Motor::run(double power) {
 
 void DRV8833Motor::set(double speed) {
 	// Run Motor with RPS specified in speed
-	if (speed == 0) {
-		error_prior = 0;
-		error_prior_prior = 0;
-		output_prior = 0;
-		//power = 0;
-		integral = 0;
+	this->speed = speed;
+	/*if (speed == 0) {
+		//error_prior = 0;
+		//error_prior_prior = 0;
+		//output_prior = 0;
+		power = 0;
+		//integral = 0;
 		this->speed = 0;
 		run(0);
 	}
 	else {
-		error_prior_prior = 0;
-		output_prior = 0;
-		error_prior = 0;
+		//error_prior_prior -= (speed - this->speed);
+		//output_prior = 0;
+		//error_prior -= (speed - this->speed);
 		//power = 0;
-		integral = 0;
+		//integral = 0;
 		this->speed = speed;
-	}
+	}*/
 
 }
 
@@ -99,31 +100,39 @@ double DRV8833Motor::getPower() {
 
 void DRV8833Motor::PIDcontrol(int dt) {
 	// speed control for
-
-	long curTacho = -encoder->getTacho(encoderMode);
+	long curTacho = encoder->getTacho(encoderMode);
 	double curSpeed = (curTacho - prevTacho) / dt * 1000 / ticksPerRotation; // Rounds Per Second
+
 	//Serial.println(curTacho - prevTacho);
 	double error = speed - curSpeed;
 	//integral = integral + dt * error;
 	//double derivative = (error - error_prior) / dt;
-	double output = output_prior + Kp * (error - error_prior) + Ki * error / dt
-			+ Kd * (error - 2 * error_prior + error_prior_prior);
+	double output = output_prior - Kp * (error - error_prior) - Ki * error
+			- Kd * (error - 2 * error_prior + error_prior_prior);
 			//Kd * (error - 2 * error_prior + error_prior_prior);
-	if (output > 255) {
-		output = 255;
+
+	output_prior = output;
+	if (speed == 0 && curSpeed < 0.2 && curSpeed > -0.2){
+		output = 0;
 	}
-	else if (output < -255) {
-		output = -255;
+	else if (output > 200) {
+		output = 200;
+	}
+	else if (output < -200) {
+		output = -200;
 	}
 	run(output);
+
+	prevTacho = curTacho;
+
+	error_prior_prior = error_prior;
+	error_prior = error;
+
 	//Serial.println("-----");
 	//Serial.println(error);
 	//Serial.println(curSpeed);
 	//Serial.println(output);
-	prevTacho = curTacho;
-	output_prior = output;
-	error_prior_prior = error_prior;
-	error_prior = error;
+
 	// u(t) = u(t-1) + K_p * (e(t) - e(t-1)) + K_i *T_s * e(t)
 	//u ( t + 1) = u ( t ) − kIe(t) − kP(e (t) − e (t- 1) )
 	// − kD (e(t) − 2e(t −1) + e(t − 2))

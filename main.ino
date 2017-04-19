@@ -1,11 +1,11 @@
-#define M1PWM1 21
-#define M1PWM2 20
-#define M2PWM1 22
-#define M2PWM2 23
-#define M1TACHO1 3
-#define M1TACHO2 2
-#define M2TACHO1 0
-#define M2TACHO2 1
+#define M1PWM1 20
+#define M1PWM2 21
+#define M2PWM1 23
+#define M2PWM2 22
+#define M1TACHO1 2
+#define M1TACHO2 3
+#define M2TACHO1 1
+#define M2TACHO2 0
 #define IRFRONT 15
 #define IRLEFT 16
 #define IRRIGHT 17
@@ -69,9 +69,9 @@ void setup() {
 	motorL = new DRV8833Motor(M1PWM1, M1PWM2, tacho, 100, 0);
 	motorR = new DRV8833Motor(M2PWM1, M2PWM2, tacho, 100, 1);
 	motorL->init();
-	motorL->setKValue(30, 1, 0.3);
+	motorL->setKValue(10, 1.1, 0.5);
 	motorR->init();
-	motorR->setKValue(30, 1, 0.3);
+	motorR->setKValue(10, 1.1, 0.5);
 
 	// led initialization
 	pinMode(13, OUTPUT);
@@ -115,29 +115,15 @@ bool resetSteadyState() {
 }
 
 void loop() {
-	// 1. Gyro Value Calculation
-	sensors_event_t gyro_event;
-	gyro.getEvent(&gyro_event);
-
-	float curTime = millis();
-	float dt = (curTime - millis_prev);
-	millis_prev = curTime;
-
-	angle = angle + (gyro_event.gyro.z - steadyState) * 57.295779513 * dt / 1000;
-
-	// 2. Motor Speed Control
-	motorL->PIDcontrol(dt);
-	motorR->PIDcontrol(dt);
-
 	// 3. Communications
 	if (Serial.available()) {
 		// L20 R40 LED1
 		// 20 40 1
 		String command = Serial.readString();
 		command = command.substring(command.indexOf("S") + 1);
-		int left = command.substring(0, command.indexOf("|")).toInt();
+		float left = command.substring(0, command.indexOf("|")).toFloat();
 		String rest1 = command.substring(command.indexOf("|") + 1);
-		int right = rest1.substring(0, rest1.indexOf("|")).toInt();
+		float right = rest1.substring(0, rest1.indexOf("|")).toFloat();
 		String rest2 = rest1.substring(rest1.indexOf("|") + 1);
 		rest2 = rest2.substring(0, rest2.indexOf("E"));
 		int led = rest2.toInt();
@@ -161,5 +147,21 @@ void loop() {
 		Serial.println("tl" + String(motorL->readTacho()));
 		Serial.println("tr" + String(motorR->readTacho()));
 	}
-	delay(5 - (millis() - curTime));
+
+	// 1. Gyro Value Calculation
+	float curTime = millis();
+	float dt = (curTime - millis_prev);
+
+	sensors_event_t gyro_event;
+	gyro.getEvent(&gyro_event);
+
+	angle = angle + (gyro_event.gyro.z - steadyState) * 57.295779513 * dt / 1000;
+
+	// 2. Motor Speed Control
+	float dt2 = (millis() - millis_prev);
+	motorL->PIDcontrol(dt);
+	motorR->PIDcontrol(dt2);
+	millis_prev = curTime;
+
+	delay(10 - (millis() - curTime));
 }
