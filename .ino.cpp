@@ -2,7 +2,7 @@
 //This is a automatic generated file
 //Please do not modify this file
 //If you touch this file your change will be overwritten during the next build
-//This file has been generated on 2017-04-18 19:58:17
+//This file has been generated on 2017-04-18 21:16:44
 
 #include "Arduino.h"
 #define M1PWM1 21
@@ -29,7 +29,6 @@
 #include <vector>
 void initSensors() ;
 void setup() ;
-float ComplementaryFilter(float accDataX,float accDataY,float accDataZ,float gyroZ, float dt, float previous_heading) ;
 bool resetSteadyState() ;
 void loop() ;
 

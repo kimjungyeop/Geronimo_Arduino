@@ -60,7 +60,7 @@ void setup() {
 	// sensor initialization
 	Serial.begin(9600);
 	analogReadResolution(8);
-	initSensors();
+	//initSensors();
 	sensor = new MicroMouseSensor(IRFRONT, IRLEFT, IRRIGHT);
 
 	// motor initialization
@@ -69,9 +69,9 @@ void setup() {
 	motorL = new DRV8833Motor(M1PWM1, M1PWM2, tacho, 100, 0);
 	motorR = new DRV8833Motor(M2PWM1, M2PWM2, tacho, 100, 1);
 	motorL->init();
-	motorL->setKValue(10, 0, 0);
+	motorL->setKValue(30, 1, 0.3);
 	motorR->init();
-	motorR->setKValue(10, 0, 0);
+	motorR->setKValue(30, 1, 0.3);
 
 	// led initialization
 	pinMode(13, OUTPUT);
@@ -99,24 +99,6 @@ void setup() {
 	delay(1000);
 }
 
-float ComplementaryFilter(float accDataX,float accDataY,float accDataZ,float gyroZ, float dt, float previous_heading)
-{
-  /*This function gets accelerometer and gyroscope readings as an input and give a value for the pitch angle*/
-  /*INPUT*/
-  /*dt [s], acc [m/s^2], gyro [deg/s]*/
-	float a = 1;
-    //float signOfX = accDataX >= 0 ? -1.0F : 1.0F;
-    float heading_fromAcc, t_heading, heading_fromGyro, heading_comp_filter;
-    // Integrate the gyroscope data -> int(angularSpeed) = angle
-    heading_fromGyro = previous_heading + (gyroZ - steadyState) * 57.295779513 * dt; //((float)gyroY) * dt; // Angle around the X-axis 
-    // Compensate for drift with accelerometer data if !bullshit
-    //t_heading= accDataX * accDataX + accDataY * accDataY;
-    //heading_fromAcc = (float)atan2(accDataZ, signOfX * sqrt(t_heading)) * 180 / PI;
-    heading_comp_filter = a * heading_fromGyro;
-    		//+ (1 - a) * heading_fromAcc;
-    return heading_comp_filter;
-}
-
 bool resetSteadyState() {
 	digitalWrite(13, HIGH);
 	float data[10];
@@ -130,8 +112,6 @@ bool resetSteadyState() {
 	}
 	steadyState = sum / 10;
 	digitalWrite(13, LOW);
-	motorL->run(1);
-	motorR->run(1);
 }
 
 void loop() {
@@ -162,8 +142,8 @@ void loop() {
 		rest2 = rest2.substring(0, rest2.indexOf("E"));
 		int led = rest2.toInt();
 
-		motorL->run(left);
-		motorR->run(right);
+		motorL->set(left);
+		motorR->set(right);
 		digitalWrite(13, led);
 
 		if (led == 1) {

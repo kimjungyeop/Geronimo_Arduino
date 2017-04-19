@@ -77,7 +77,7 @@ void DRV8833Motor::set(double speed) {
 		error_prior = 0;
 		error_prior_prior = 0;
 		output_prior = 0;
-		power = 0;
+		//power = 0;
 		integral = 0;
 		this->speed = 0;
 		run(0);
@@ -86,7 +86,7 @@ void DRV8833Motor::set(double speed) {
 		error_prior_prior = 0;
 		output_prior = 0;
 		error_prior = 0;
-		power = 0;
+		//power = 0;
 		integral = 0;
 		this->speed = speed;
 	}
@@ -100,16 +100,26 @@ double DRV8833Motor::getPower() {
 void DRV8833Motor::PIDcontrol(int dt) {
 	// speed control for
 
-	long curTacho = encoder->getTacho(encoderMode);
+	long curTacho = -encoder->getTacho(encoderMode);
 	double curSpeed = (curTacho - prevTacho) / dt * 1000 / ticksPerRotation; // Rounds Per Second
 	//Serial.println(curTacho - prevTacho);
 	double error = speed - curSpeed;
 	//integral = integral + dt * error;
 	//double derivative = (error - error_prior) / dt;
-	double output = output_prior + Ki * error / dt + Kp * (error - error_prior);
+	double output = output_prior + Kp * (error - error_prior) + Ki * error / dt
+			+ Kd * (error - 2 * error_prior + error_prior_prior);
 			//Kd * (error - 2 * error_prior + error_prior_prior);
+	if (output > 255) {
+		output = 255;
+	}
+	else if (output < -255) {
+		output = -255;
+	}
 	run(output);
-	//Serial.println(curSpeed);
+	Serial.println("-----");
+	Serial.println(error);
+	Serial.println(curSpeed);
+	Serial.println(output);
 	prevTacho = curTacho;
 	output_prior = output;
 	error_prior_prior = error_prior;
