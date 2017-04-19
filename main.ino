@@ -39,23 +39,17 @@ float millis_prev = 0;
 IntervalTimer imu;
 IntervalTimer gyroscope;
 
-void initSensors()
-{
-  if(!accel.begin())
-  {
-    /* There was a problem detecting the LSM303 ... check your connections */
+void initSensors() {
+  if(!accel.begin()) {/* There was a problem detecting the LSM303 ... check your connections */
     Serial.println(F("Ooops, no LSM303 detected ... Check your wiring!"));
     while(1);
   }
-  if(!mag.begin())
-  {
+  if(!mag.begin()) {
     /* There was a problem detecting the LSM303 ... check your connections */
     Serial.println("Ooops, no LSM303 detected ... Check your wiring!");
     while(1);
   }
-
-  if(!gyro.begin())
-  {
+  if(!gyro.begin()) {
     /* There was a problem detecting the L3GD20 ... check your connections */
     Serial.println("Ooops, no L3GD20 detected ... Check your wiring!");
     while(1);
@@ -63,15 +57,13 @@ void initSensors()
 }
 
 void setup() {
-	// put your setup code here, to run once:
+	// sensor initialization
 	Serial.begin(9600);
-	//analogWriteFrequency(21, 500);
-	//analogWriteResolution(8);
 	analogReadResolution(8);
 	initSensors();
-	//gyroscope.begin(calcgyro, 50000);
-
 	sensor = new MicroMouseSensor(IRFRONT, IRLEFT, IRRIGHT);
+
+	// motor initialization
 	tacho = new PololuQuadratureEncoder(M1TACHO1, M1TACHO2, M2TACHO1, M2TACHO2, 12);
 	tacho->init();
 	motorL = new DRV8833Motor(M1PWM1, M1PWM2, tacho, 100, 0);
@@ -80,6 +72,8 @@ void setup() {
 	motorL->setKValue(10, 0, 0);
 	motorR->init();
 	motorR->setKValue(10, 0, 0);
+
+	// led initialization
 	pinMode(13, OUTPUT);
 	for (int i = 0; i < 10; i++) {
 		digitalWrite(13, HIGH);
@@ -89,6 +83,8 @@ void setup() {
 	}
 	digitalWrite(13, HIGH);
 	delay(1000);
+
+	// gyro calibration
 	float data[20];
 	float sum = 0;
 	for(int i = 0; i < 20; i++) {
@@ -134,22 +130,26 @@ bool resetSteadyState() {
 	}
 	steadyState = sum / 10;
 	digitalWrite(13, LOW);
+	motorL->run(1);
+	motorR->run(1);
 }
 
 void loop() {
+	// 1. Gyro Value Calculation
 	sensors_event_t gyro_event;
 	gyro.getEvent(&gyro_event);
 
 	float curTime = millis();
 	float dt = (curTime - millis_prev);
-	//Serial.println(dt);
 	millis_prev = curTime;
 
 	angle =  angle + (gyro_event.gyro.z - steadyState) * 57.295779513 * dt / 1000;
-			//ComplementaryFilter(accel_event.acceleration.x, accel_event.acceleration.y,
-			//accel_event.acceleration.z, gyro_event.gyro.z, dt / 1000, angle);
-	//Serial.println(angle);
 
+	// 2. Motor Speed Control
+	motorL->PIDcontrol(dt);
+	motorR->PIDcontrol(dt);
+
+	// 3. Communications
 	if (Serial.available()) {
 		// L20 R40 LED1
 		// 20 40 1
@@ -181,5 +181,5 @@ void loop() {
 		Serial.println("tl" + String(motorL->readTacho()));
 		Serial.println("tr" + String(motorR->readTacho()));
 	}
-	delay(10 - (millis() - curTime));
+	delay(5 - (millis() - curTime));
 }

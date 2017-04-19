@@ -39,8 +39,7 @@ long DRV8833Motor::readTacho() {
 }
 
 void DRV8833Motor::run(double power) {
-	// Run Motor with Power -100 to 100
-	//power = power / 100 * 255;
+	// Run Motor with Power -255 to 255
 	pinMode(out1, OUTPUT);
 	pinMode(out2, OUTPUT);
 	power = (int)power;
@@ -70,26 +69,6 @@ void DRV8833Motor::run(double power) {
 			digitalWrite(out2, LOW);
 		}
 	}
-	/*
-	 * else if (power < 0) {
-		if (decay) {
-			digitalWrite(out1, LOW);
-			analogWrite(out2, (int)(-power));
-		} else {
-			Serial.println("2");
-			analogWrite(out1, (int)(-power));
-			digitalWrite(out2, HIGH);
-		}
-	} else {
-		if (decay) {
-			digitalWrite(out1, LOW);
-			digitalWrite(out2, LOW);
-		} else {
-			digitalWrite(out1, HIGH);
-			digitalWrite(out2, HIGH);
-		}
-	}
-	 */
 }
 
 void DRV8833Motor::set(double speed) {
@@ -120,16 +99,6 @@ double DRV8833Motor::getPower() {
 
 void DRV8833Motor::PIDcontrol(int dt) {
 	// speed control for
-	/*long curTacho = encoder->getTacho(encoderMode);
-	double curSpeed = (curTacho - prevTacho) / dt * 1000 / ticksPerRotation; // Rounds Per Second
-	//Serial.println(curTacho - prevTacho);
-	prevTacho = curTacho;
-	double error = speed - curSpeed;
-	integral = integral + dt * error;
-	double derivative = (error - error_prior) / dt;
-	double output = Kp * error + Ki * integral + Kd * derivative;
-	run(output);
-	error_prior = error;*/
 
 	long curTacho = encoder->getTacho(encoderMode);
 	double curSpeed = (curTacho - prevTacho) / dt * 1000 / ticksPerRotation; // Rounds Per Second
