@@ -13,34 +13,34 @@
 
 class DRV8833Motor{
 public:
-	DRV8833Motor(int out1, int out2, PololuQuadratureEncoder *ptr, double gearRatio, int mode);
-	void setKValue(double Kp, double Ki, double Kd);
+	DRV8833Motor(int out1, int out2, PololuQuadratureEncoder *ptr, float gearRatio, int mode);
+	void setKValue(float Kp, float Ki, float Kd);
 	void init();
-	void set(double speed);
-	void run(double power);
-	void PIDcontrol(int dt);
+	void set(float speed, int dt);
+	void run(float power);
+	void PIDcontrol(float dt);
 	void reverse();
 	void resetTacho();
 	long readTacho();
 	void flipDecay();
-	double getPower();
+	float getPower();
 
 private:
 	PololuQuadratureEncoder *encoder;
 	unsigned const int out1, out2;
-	volatile double speed = 0;
-	volatile double power = 0;
-	double gearRatio;
-	double ticksPerRotation;
+	float speed = 0;
+	float power = 0;
+	float gearRatio;
+	float ticksPerRotation;
 	int encoderMode;
-	volatile long prevTacho = 0;
-	volatile double integral = 0;
-	volatile double error_prior = 0;
-	volatile double error_prior_prior = 0;
-	volatile double output_prior = 0;
-	double Kp = 0;
-	double Ki = 0;
-	double Kd = 0;
+	long prevTacho = 0;
+	float integral = 0;
+	float error_prior = 0;
+	float error_prior_prior = 0;
+	float output_prior = 0;
+	float Kp = 0;
+	float Ki = 0;
+	float Kd = 0;
 	bool initialized = false;
 	bool flip = false;
 	bool decay = false;

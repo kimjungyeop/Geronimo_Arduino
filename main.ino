@@ -36,8 +36,8 @@ Adafruit_L3GD20_Unified gyro = Adafruit_L3GD20_Unified(20);
 float angle = 0;
 float steadyState = 0;
 float millis_prev = 0;
-IntervalTimer imu;
-IntervalTimer gyroscope;
+float speedL = 0;
+float speedR = 0;
 
 void initSensors() {
   if(!accel.begin()) {/* There was a problem detecting the LSM303 ... check your connections */
@@ -66,8 +66,8 @@ void setup() {
 	// motor initialization
 	tacho = new PololuQuadratureEncoder(M1TACHO1, M1TACHO2, M2TACHO1, M2TACHO2, 12);
 	tacho->init();
-	motorL = new DRV8833Motor(M1PWM1, M1PWM2, tacho, 100, 0);
-	motorR = new DRV8833Motor(M2PWM1, M2PWM2, tacho, 100, 1);
+	motorL = new DRV8833Motor(M1PWM1, M1PWM2, tacho, 100.37, 0);
+	motorR = new DRV8833Motor(M2PWM1, M2PWM2, tacho, 100.37, 1);
 	motorL->init();
 	motorL->setKValue(10, 1.1, 0.5);
 	motorR->init();
@@ -91,15 +91,14 @@ void setup() {
 		sensors_event_t event;
 		gyro.getEvent(&event);
 		data[i] = event.gyro.z;
-		sum = sum + data[i];
-		delay(100);
+		sum += data[i];
+		delay(10);
 	}
 	steadyState = sum / 20;
 	digitalWrite(13, LOW);
-	delay(1000);
 }
 
-bool resetSteadyState() {
+void resetSteadyState() {
 	digitalWrite(13, HIGH);
 	float data[10];
 	float sum = 0;
@@ -107,18 +106,17 @@ bool resetSteadyState() {
 		sensors_event_t event;
 		gyro.getEvent(&event);
 		data[i] = event.gyro.z;
-		sum = sum + data[i];
-		delay(15);
+		sum += data[i];
 	}
 	steadyState = sum / 10;
 	digitalWrite(13, LOW);
 }
 
 void loop() {
-	// 3. Communications
 	if (Serial.available()) {
-		// L20 R40 LED1
-		// 20 40 1
+		// Communications
+		// L2 R4 RESET1
+		// S2|4|1E
 		String command = Serial.readString();
 		command = command.substring(command.indexOf("S") + 1);
 		float left = command.substring(0, command.indexOf("|")).toFloat();
@@ -126,15 +124,24 @@ void loop() {
 		float right = rest1.substring(0, rest1.indexOf("|")).toFloat();
 		String rest2 = rest1.substring(rest1.indexOf("|") + 1);
 		rest2 = rest2.substring(0, rest2.indexOf("E"));
-		int led = rest2.toInt();
+		int reset = rest2.toInt();
 
-		motorL->set(left);
-		motorR->set(right);
-		digitalWrite(13, led);
+		float curTime = millis();
+		float dt = (curTime - millis_prev);
+		sensors_event_t gyro_event;
+		gyro.getEvent(&gyro_event);
 
-		if (led == 1) {
+		angle = angle + (gyro_event.gyro.z - steadyState) * 57.295779513 * dt / 1000;
+
+		motorL->set(left, dt);
+		motorR->set(right, dt);
+
+		millis_prev = curTime;
+
+		if (reset == 1) {
 			resetSteadyState();
-			digitalWrite(13, 0);
+			digitalWrite(13, 1);
+			millis_prev = millis();
 		}
 
 		// L52 R102 F60 IMU10 LT1023 RT5034
@@ -146,22 +153,31 @@ void loop() {
 		Serial.println("i" + String(angle));
 		Serial.println("tl" + String(motorL->readTacho()));
 		Serial.println("tr" + String(motorR->readTacho()));
+		digitalWrite(13, 0);
+
+		int dly = 10 - (millis() - curTime);
+		if (delay > 0) {
+			delay(dly);
+		}
 	}
+	else {
+		// 1. Gyro Value Calculation
+		float curTime = millis();
+		float dt = (curTime - millis_prev);
 
-	// 1. Gyro Value Calculation
-	float curTime = millis();
-	float dt = (curTime - millis_prev);
+		sensors_event_t gyro_event;
+		gyro.getEvent(&gyro_event);
 
-	sensors_event_t gyro_event;
-	gyro.getEvent(&gyro_event);
+		angle = angle + (gyro_event.gyro.z - steadyState) * 57.295779513 * dt / 1000;
 
-	angle = angle + (gyro_event.gyro.z - steadyState) * 57.295779513 * dt / 1000;
+		// 2. Motor Speed Control
+		motorL->PIDcontrol(dt);
+		motorR->PIDcontrol(dt);
 
-	// 2. Motor Speed Control
-	float dt2 = (millis() - millis_prev);
-	motorL->PIDcontrol(dt);
-	motorR->PIDcontrol(dt2);
-	millis_prev = curTime;
-
-	delay(10 - (millis() - curTime));
+		millis_prev = curTime;
+		int dly = 10 - (millis() - curTime);
+		if (delay > 0) {
+			delay(dly);
+		}
+	}
 }
