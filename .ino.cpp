@@ -2,7 +2,7 @@
 //This is a automatic generated file
 //Please do not modify this file
 //If you touch this file your change will be overwritten during the next build
-//This file has been generated on 2017-04-18 23:10:19
+//This file has been generated on 2017-04-22 00:45:02
 
 #include "Arduino.h"
 #define M1PWM1 20
@@ -29,7 +29,7 @@
 #include <vector>
 void initSensors() ;
 void setup() ;
-bool resetSteadyState() ;
+void resetSteadyState() ;
 void loop() ;
 
 #include "main.ino"

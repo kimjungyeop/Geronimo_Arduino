@@ -17,7 +17,7 @@ public:
 	static void init();
 	static long getTacho(int mode);
 	static void reset(int mode);
-	static const int ticksPerRotation = 12;
+	float ticksPerRotation = 12.0;
 private:
 	static long tachoCount1;
 	static long tachoCount2;

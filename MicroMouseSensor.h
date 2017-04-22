@@ -16,6 +16,7 @@ public:
 	int readLeftIR();
 	int readRightIR(); //1 if object exists
 	int readFrontIR(); //millimeters
+	float getMedian(float data[]);
 	//double readIMU(); // degrees of rotation
 private:
 	unsigned const int IR_F, IR_L, IR_R;
