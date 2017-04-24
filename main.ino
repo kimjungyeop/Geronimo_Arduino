@@ -124,7 +124,8 @@ void loop() {
 		float right = rest1.substring(0, rest1.indexOf("|")).toFloat();
 		String rest2 = rest1.substring(rest1.indexOf("|") + 1);
 		rest2 = rest2.substring(0, rest2.indexOf("E"));
-		int reset = rest2.toInt();
+		int turnAngle = rest2.toInt();
+		Serial.clear();
 
 		float curTime = millis();
 		float dt = (curTime - millis_prev);
@@ -133,12 +134,12 @@ void loop() {
 
 		angle = angle + (gyro_event.gyro.z - steadyState) * 57.295779513 * dt / 1000;
 
-		motorL->set(left, dt);
-		motorR->set(right, dt);
+		motorL->setPos(left, dt);
+		motorR->setPos(right, dt);
 
 		millis_prev = curTime;
 
-		if (reset == 1) {
+		if (turnAngle == 1) {
 			resetSteadyState();
 			digitalWrite(13, 1);
 			millis_prev = millis();

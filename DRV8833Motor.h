@@ -17,6 +17,7 @@ public:
 	void setKValue(float Kp, float Ki, float Kd);
 	void init();
 	void set(float speed, int dt);
+	void setPos(float pos, int dt);
 	void run(float power);
 	void PIDcontrol(float dt);
 	void reverse();
@@ -29,6 +30,9 @@ private:
 	PololuQuadratureEncoder *encoder;
 	unsigned const int out1, out2;
 	float speed = 0;
+	float iTerm = 0;
+	float position = 0;
+	bool positionControl = false;
 	float power = 0;
 	float gearRatio;
 	float ticksPerRotation;
