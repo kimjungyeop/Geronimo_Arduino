@@ -146,20 +146,52 @@ void gyroUpdate(float dt) {
 
 void straightUntilWall() {
     float dir = angle;
-
-    float curTime = millis();
-    float kp = 0.01, ki = 0.0001, kd = 0.0001;
+    float prevTime = millis();
+    float kp = 0.005, ki = 0.00001, kd = 0.0001;
     float i = 0;
-    float prevE = -1000;
-    Serial.println(sensor->readFrontIR());
-    while (sensor->readFrontIR() < 90 || sensor->readFrontIR() > 95) { // Change the distance value.
-        delay(10);
-        float nextTime = millis();
-        float dt = nextTime - curTime;
+    float prevE = 0;
+
+    delay(500);
+	resetSteadyState();
+    delay(500);
+
+    while (sensor->readFrontIR() < 80 || sensor->readFrontIR() > 85) { // Change the distance value.
+    	delay(10);
+        float curTime = millis();
+        float dt = curTime - prevTime;
+        gyroUpdate(dt);
+        Serial.println(angle);
 
         float diff = ((((int)angle % 360) - ((int)dir % 360)) + 720) % 360;
         // Diff is the change in orientation, as an angle between 0 and 360
 		float e = (diff < 180) ? diff : diff - 360;
+        // e is the error, an angle between -180 and 180
+
+        i += (e * dt);
+		float de = (e - prevE) / dt;
+		prevE = e;
+
+		double u = (kp * e) + (ki * i) + (kd * de);
+		if (u > 2) {
+			u = 2;
+		}
+		else if (u < -2) {
+			u = -2;
+		}
+		motorL->set(1 - u, dt);
+        motorR->set(1 + u, dt);
+        prevTime = curTime;
+    }
+
+    float e = 10;
+    while (abs(e) > 1) { // Change the distance value.
+        delay(10);
+        float curTime = millis();
+        float dt = curTime - prevTime;
+
+        float diff = ((((int)angle % 360) - ((int)dir % 360)) + 720) % 360;
+        // Diff is the change in orientation, as an angle between 0 and 360
+		e = (diff < 180) ? diff : diff - 360;
         // e is the error, an angle between -180 and 180
 
         i += (e * dt);
@@ -176,13 +208,14 @@ void straightUntilWall() {
 		else if (u < -2) {
 			u = -2;
 		}
-        motorL->set(1 - u, dt);
-        motorR->set(1 + u, dt);
+        motorL->set(-u, dt);
+        motorR->set(u, dt);
         gyroUpdate(dt);
-        curTime = nextTime;
+        prevTime = curTime;
     }
-    motorL->set(0, 10);
-    motorR->set(0, 10);
+    delay(500);
+	resetSteadyState();
+    delay(500);
 }
 
 void loop() {
