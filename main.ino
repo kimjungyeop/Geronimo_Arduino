@@ -115,96 +115,57 @@ void resetSteadyState() {
 	digitalWrite(13, LOW);
 }
 
-void loop() {
-	if (Serial.available()) {
-		// Communications
-		// L2 R4 RESET1
-		// S2|4|1E
-		String command = Serial.readString();
-		command = command.substring(command.indexOf("S") + 1);
-		float left = command.substring(0, command.indexOf("|")).toFloat();
-		String rest1 = command.substring(command.indexOf("|") + 1);
-		float right = rest1.substring(0, rest1.indexOf("|")).toFloat();
-		String rest2 = rest1.substring(rest1.indexOf("|") + 1);
-		rest2 = rest2.substring(0, rest2.indexOf("E"));
-		int turnAngle = rest2.toInt();
-		Serial.clear();
-
-		float curTime = millis();
-		float dt = (curTime - millis_prev);
-		sensors_event_t gyro_event;
-		gyro.getEvent(&gyro_event);
-
-		angle = angle + (gyro_event.gyro.z - steadyState) * 57.295779513 * dt / 1000;
-
-		if (abs(left) > 0 || abs(right) > 0) {
-			motorL->set(left, dt);
-			motorR->set(right, dt);
-		}
-		else if (abs(turnAngle) > 0) {
-			motorL->setPos(turnAngle, dt);
-			motorR->setPos(-turnAngle, dt);
-			finishedTurning = false;
-		}
-		else {
-			motorL->set(left, dt);
-			motorR->set(right, dt);
-		}
-
-		millis_prev = curTime;
-
-		/*if (!motorL->positionControl && !motorR->positionControl && motorL->curSpeed == 0 &&
-				motorR->curSpeed == 0 && motorL->speed == 0 && motorR->speed == 0) {
-			for (int i = 0; i < 100; i++) {
-				sensors_event_t gyro_event;
-				gyro.getEvent(&gyro_event);
-				angle = angle + (gyro_event.gyro.z - steadyState) * 57.295779513 * dt / 1000;
-				delay(10);
-			}
-			resetSteadyState();
-			digitalWrite(13, 1);
-			millis_prev = millis();
-		}*/
-
-		// L52 R102 F60 IMU10 LT1023 RT5034
-		// 52 102 60 10 1023 5034
-
-		Serial.println("l" + String(sensor->readLeftIR()));
-		Serial.println("r" + String(sensor->readRightIR()));
-		Serial.println("f" + String(sensor->readFrontIR()));
-		Serial.println("i" + String(angle));
-		Serial.println("tl" + String(motorL->readTacho()));
-		Serial.println("tr" + String(motorR->readTacho()));
-		digitalWrite(13, 0);
-
-		int dly = 10 - (millis() - curTime);
-		if (delay > 0) {
-			delay(dly);
-		}
+void turn(bool isLeft) {
+	finishedTurning = false;
+	if (isLeft) {
+		motorL->setPos(904, 0);
+		motorR->setPos(-905, 0);
 	}
 	else {
-		// 1. Gyro Value Calculation
-		if(!finishedTurning && !motorL->positionControl && !motorR->positionControl) {
-			finishedTurning = true;
-			Serial.println("z");
-		}
+		motorL->setPos(-904, 0);
+		motorR->setPos(905, 0);
+	}
 
-		float curTime = millis();
-		float dt = (curTime - millis_prev);
+	while(motorL->positionControl && motorR->positionControl) {
+		motorL->PIDcontrol(0);
+		motorR->PIDcontrol(0);
+		delay(10);
+	}
+	finishedTurning = true;
+	delay(500);
+	resetSteadyState();
+	delay(500);
+}
 
-		sensors_event_t gyro_event;
-		gyro.getEvent(&gyro_event);
+void gyroUpdate(float dt) {
+	sensors_event_t gyro_event;
+	gyro.getEvent(&gyro_event);
+	angle = angle + (gyro_event.gyro.z - steadyState) * 57.295779513 * dt / 1000;
+}
 
-		angle = angle + (gyro_event.gyro.z - steadyState) * 57.295779513 * dt / 1000;
+void loop() {
+	turn(true);
+	turn(false);
+	turn(true);
+	turn(false);
+	turn(true);
+	turn(false);
+	turn(true);
+	turn(false);
+	turn(true);
+	turn(false);
+	float curTime = millis();
+	float dt = (curTime - millis_prev);
 
-		// 2. Motor Speed Control
-		motorL->PIDcontrol(dt);
-		motorR->PIDcontrol(dt);
+	// 1: Update Gyro
+	gyroUpdate(dt);
 
-		millis_prev = curTime;
-		int dly = 10 - (millis() - curTime);
-		if (delay > 0) {
-			delay(dly);
-		}
+	// 2: Speed Control
+
+	millis_prev = curTime;
+
+	int dly = 10 - (millis() - curTime);
+	if (delay > 0) {
+		delay(dly);
 	}
 }
