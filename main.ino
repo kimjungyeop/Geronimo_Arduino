@@ -143,6 +143,40 @@ void gyroUpdate(float dt) {
 	angle = angle + (gyro_event.gyro.z - steadyState) * 57.295779513 * dt / 1000;
 }
 
+void straightUntilWall() {
+    float dir = angle;
+
+    float curTime = millis();
+    float kp = 0.01, ki = 0.0001, kd = 0.0001;
+    float i = 0;
+    float prevE = -1000;
+
+    while (sensor->readFrontIR > 60) { // Change the distance value.
+        delay(10);
+        float nextTime = millis();
+        float dt = nextTime - curTime;
+
+        float diff = (((angle % 360) - (dir % 360)) + 720) % 360;
+		// Diff is the change in orientation, as an angle between 0 and 360
+		float e = (diff < 180) ? diff : diff - 360;
+        // e is the error, an angle between -180 and 180
+
+        i += (e * dt);
+		float de = 0;
+		if (prevE != -1000) {
+			de = (e - prevE) / dt;
+		}
+		prevE = e;
+
+		double u = (kp * e) + (ki * i) + (kd * de);
+
+        motorL->set(1 + u, dt);
+        motorR->set(1 - u, dt);
+        gyroUpdate(dt);
+        curTime = nextTime;
+    }
+}
+
 void loop() {
 	turn(true);
 	turn(false);
