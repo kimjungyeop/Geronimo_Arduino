@@ -115,6 +115,7 @@ void resetSteadyState() {
 	digitalWrite(13, LOW);
 }
 
+
 void turn(bool isLeft) {
 	finishedTurning = false;
 	if (isLeft) {
@@ -150,14 +151,14 @@ void straightUntilWall() {
     float kp = 0.01, ki = 0.0001, kd = 0.0001;
     float i = 0;
     float prevE = -1000;
-
-    while (sensor->readFrontIR > 60) { // Change the distance value.
+    Serial.println(sensor->readFrontIR());
+    while (sensor->readFrontIR() < 90 || sensor->readFrontIR() > 95) { // Change the distance value.
         delay(10);
         float nextTime = millis();
         float dt = nextTime - curTime;
 
-        float diff = (((angle % 360) - (dir % 360)) + 720) % 360;
-		// Diff is the change in orientation, as an angle between 0 and 360
+        float diff = ((((int)angle % 360) - ((int)dir % 360)) + 720) % 360;
+        // Diff is the change in orientation, as an angle between 0 and 360
 		float e = (diff < 180) ? diff : diff - 360;
         // e is the error, an angle between -180 and 180
 
@@ -169,15 +170,30 @@ void straightUntilWall() {
 		prevE = e;
 
 		double u = (kp * e) + (ki * i) + (kd * de);
-
-        motorL->set(1 + u, dt);
-        motorR->set(1 - u, dt);
+		if (u > 2) {
+			u = 2;
+		}
+		else if (u < -2) {
+			u = -2;
+		}
+        motorL->set(1 - u, dt);
+        motorR->set(1 + u, dt);
         gyroUpdate(dt);
         curTime = nextTime;
     }
+    motorL->set(0, 10);
+    motorR->set(0, 10);
 }
 
 void loop() {
+	straightUntilWall();
+	turn(true);
+	/*Serial.println(sensor->readFrontIR());
+	Serial.println(sensor->readLeftIR());
+	Serial.println(sensor->readRightIR());
+	Serial.println("---");
+	delay(100);*/
+	/*
 	turn(true);
 	turn(false);
 	turn(true);
@@ -201,5 +217,5 @@ void loop() {
 	int dly = 10 - (millis() - curTime);
 	if (delay > 0) {
 		delay(dly);
-	}
+	}*/
 }
