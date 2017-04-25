@@ -99,7 +99,7 @@ void DRV8833Motor::set(float speed, int dt) {
 }
 
 void DRV8833Motor::setPos(float pos, int dt) {
-	position = pos;
+	position = encoder->getTacho(encoderMode) + pos;
 	iTerm = 0;
 	positionControl = true;
 	speed = 0;
@@ -114,7 +114,7 @@ void DRV8833Motor::PIDcontrol(float dt) {
 	// speed control for
 	if (!positionControl) {
 		long curTacho = encoder->getTacho(encoderMode);
-		float curSpeed = (curTacho - prevTacho) / dt * 1000.0 / ticksPerRotation; // Rounds Per Second
+		curSpeed = (curTacho - prevTacho) / dt * 1000.0 / ticksPerRotation; // Rounds Per Second
 		float error = speed - curSpeed;
 		float output = output_prior - Kp * (error - error_prior) - Ki * error
 				- Kd * (error - 2 * error_prior + error_prior_prior);
@@ -148,7 +148,7 @@ void DRV8833Motor::PIDcontrol(float dt) {
 	}
 	else {
 		long curTacho = encoder->getTacho(encoderMode);
-		Serial.println(curTacho);
+		//Serial.println(curTacho);
 		if (curTacho - position == 0) {
 			positionControl = false;
 		}

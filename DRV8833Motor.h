@@ -25,14 +25,16 @@ public:
 	long readTacho();
 	void flipDecay();
 	float getPower();
+	float curSpeed;
+	float speed = 0;
+	bool positionControl = false;
 
 private:
 	PololuQuadratureEncoder *encoder;
 	unsigned const int out1, out2;
-	float speed = 0;
+	//float speed = 0;
 	float iTerm = 0;
 	float position = 0;
-	bool positionControl = false;
 	float power = 0;
 	float gearRatio;
 	float ticksPerRotation;

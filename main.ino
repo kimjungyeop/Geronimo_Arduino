@@ -36,8 +36,10 @@ Adafruit_L3GD20_Unified gyro = Adafruit_L3GD20_Unified(20);
 float angle = 0;
 float steadyState = 0;
 float millis_prev = 0;
+float timeSinceCalibration = 0;
 float speedL = 0;
 float speedR = 0;
+bool finishedTurning = false;
 
 void initSensors() {
   if(!accel.begin()) {/* There was a problem detecting the LSM303 ... check your connections */
@@ -96,6 +98,7 @@ void setup() {
 	}
 	steadyState = sum / 20;
 	digitalWrite(13, LOW);
+	timeSinceCalibration = millis();
 }
 
 void resetSteadyState() {
@@ -134,16 +137,34 @@ void loop() {
 
 		angle = angle + (gyro_event.gyro.z - steadyState) * 57.295779513 * dt / 1000;
 
-		motorL->setPos(left, dt);
-		motorR->setPos(right, dt);
+		if (abs(left) > 0 || abs(right) > 0) {
+			motorL->set(left, dt);
+			motorR->set(right, dt);
+		}
+		else if (abs(turnAngle) > 0) {
+			motorL->setPos(turnAngle, dt);
+			motorR->setPos(-turnAngle, dt);
+			finishedTurning = false;
+		}
+		else {
+			motorL->set(left, dt);
+			motorR->set(right, dt);
+		}
 
 		millis_prev = curTime;
 
-		if (turnAngle == 1) {
+		/*if (!motorL->positionControl && !motorR->positionControl && motorL->curSpeed == 0 &&
+				motorR->curSpeed == 0 && motorL->speed == 0 && motorR->speed == 0) {
+			for (int i = 0; i < 100; i++) {
+				sensors_event_t gyro_event;
+				gyro.getEvent(&gyro_event);
+				angle = angle + (gyro_event.gyro.z - steadyState) * 57.295779513 * dt / 1000;
+				delay(10);
+			}
 			resetSteadyState();
 			digitalWrite(13, 1);
 			millis_prev = millis();
-		}
+		}*/
 
 		// L52 R102 F60 IMU10 LT1023 RT5034
 		// 52 102 60 10 1023 5034
@@ -163,6 +184,11 @@ void loop() {
 	}
 	else {
 		// 1. Gyro Value Calculation
+		if(!finishedTurning && !motorL->positionControl && !motorR->positionControl) {
+			finishedTurning = true;
+			Serial.println("z");
+		}
+
 		float curTime = millis();
 		float dt = (curTime - millis_prev);
 
