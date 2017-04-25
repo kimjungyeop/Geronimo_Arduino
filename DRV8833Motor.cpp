@@ -73,6 +73,7 @@ void DRV8833Motor::run(float power) {
 
 void DRV8833Motor::set(float speed, int dt) {
 	// Run Motor with RPS specified in speed
+	positionControl = false;
 	error_prior = error_prior - (speed - this->speed);
 	error_prior_prior = error_prior_prior - (speed - this->speed);
 	this->speed = speed;
@@ -95,7 +96,14 @@ void DRV8833Motor::set(float speed, int dt) {
 		//integral = 0;
 		this->speed = speed;
 	}*/
+}
 
+void DRV8833Motor::setPos(float pos, int dt) {
+	position = encoder->getTacho(encoderMode) + pos;
+	iTerm = 0;
+	positionControl = true;
+	speed = 0;
+	PIDcontrol(dt);
 }
 
 float DRV8833Motor::getPower() {
@@ -104,38 +112,62 @@ float DRV8833Motor::getPower() {
 
 void DRV8833Motor::PIDcontrol(float dt) {
 	// speed control for
-	long curTacho = encoder->getTacho(encoderMode);
-	float curSpeed = (curTacho - prevTacho) / dt * 1000.0 / ticksPerRotation; // Rounds Per Second
-	float error = speed - curSpeed;
-	float output = output_prior - Kp * (error - error_prior) - Ki * error
-			- Kd * (error - 2 * error_prior + error_prior_prior);
+	if (!positionControl) {
+		long curTacho = encoder->getTacho(encoderMode);
+		curSpeed = (curTacho - prevTacho) / dt * 1000.0 / ticksPerRotation; // Rounds Per Second
+		float error = speed - curSpeed;
+		float output = output_prior - Kp * (error - error_prior) - Ki * error
+				- Kd * (error - 2 * error_prior + error_prior_prior);
 
-	if (speed == 0 && curSpeed < 0.1 && curSpeed > -0.1){
-		output = 0;
+		if (speed == 0 && curSpeed < 0.1 && curSpeed > -0.1){
+			output = 0;
+		}
+		else if (output > 200) {
+			output = 200;
+		}
+		else if (output < -200) {
+			output = -200;
+		}
+		run(output);
+		output_prior = output;
+
+		prevTacho = curTacho;
+
+		error_prior_prior = error_prior;
+		error_prior = error;
+
+		//Serial.println("-----");
+		//Serial.println(error);
+		//Serial.println(curSpeed);
+		//Serial.println(output);
+
+		// u(t) = u(t-1) + K_p * (e(t) - e(t-1)) + K_i *T_s * e(t)
+		//u ( t + 1) = u ( t ) − kIe(t) − kP(e (t) − e (t- 1) )
+		// − kD (e(t) − 2e(t −1) + e(t − 2))
+		// u(t) = u(t-1) + K_p * (e(t) - e(t-1)) + K_i *T_s * e(t)
 	}
-	else if (output > 200) {
-		output = 200;
+	else {
+		long curTacho = encoder->getTacho(encoderMode);
+		//Serial.println(curTacho);
+		if (curTacho - position == 0) {
+			positionControl = false;
+		}
+
+		float error = curTacho - position;
+		iTerm += 0.0006 * error;
+		double dInput = (curTacho - prevTacho);
+
+		/*Compute PID Output*/
+		double output = 0.06 * error + iTerm + 0.05 * dInput;
+		if (output > 70) {
+			output = 70;
+		}
+		else if (output < -70) {
+			output = -70;
+		}
+		run(output);
+		prevTacho = curTacho;
 	}
-	else if (output < -200) {
-		output = -200;
-	}
-	run(output);
-	output_prior = output;
-
-	prevTacho = curTacho;
-
-	error_prior_prior = error_prior;
-	error_prior = error;
-
-	//Serial.println("-----");
-	//Serial.println(error);
-	//Serial.println(curSpeed);
-	//Serial.println(output);
-
-	// u(t) = u(t-1) + K_p * (e(t) - e(t-1)) + K_i *T_s * e(t)
-	//u ( t + 1) = u ( t ) − kIe(t) − kP(e (t) − e (t- 1) )
-	// − kD (e(t) − 2e(t −1) + e(t − 2))
-	// u(t) = u(t-1) + K_p * (e(t) - e(t-1)) + K_i *T_s * e(t)
 }
 
 void DRV8833Motor::resetTacho() {
