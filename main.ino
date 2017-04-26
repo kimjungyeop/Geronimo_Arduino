@@ -119,12 +119,12 @@ void resetSteadyState() {
 void turn(bool isLeft) {
 	finishedTurning = false;
 	if (isLeft) {
-		motorL->setPos(890, 70);
-		motorR->setPos(-890, 70);
+		motorL->setPos(890, 80);
+		motorR->setPos(-890, 80);
 	}
 	else {
-		motorL->setPos(-890, 70);
-		motorR->setPos(890, 70);
+		motorL->setPos(-890, 80);
+		motorR->setPos(890, 80);
 	}
 
 	while(motorL->positionControl || motorR->positionControl) {
@@ -235,111 +235,6 @@ void straightUntilWall() {
     delay(500);
 }
 
-
-bool straightUntilNoSideWall() {
-    float dir = angle;
-    float prevTime = millis();
-    float kp = 0.005, ki = 0.00001, kd = 0.00001;
-    float i = 0;
-    float prevE = 0;
-
-    delay(500);
-	resetSteadyState();
-    delay(500);
-
-    int empty_wall = 0; // 0 is nothing, 1 is left, 2 is right, 3 is both.
-    int distance_count = 0;
-
-    // Todo: if front ir is between 90 and 95, turn.
-    while (distance_count < 40) { // Change the distance value.
-    	delay(10);
-        float curTime = millis();
-        float dt = curTime - prevTime;
-        gyroUpdate(dt);
-        Serial.println(angle);
-
-        float diff = ((((int)angle % 360) - ((int)dir % 360)) + 720) % 360;
-        // Diff is the change in orientation, as an angle between 0 and 360
-		float e = (diff < 180) ? diff : diff - 360;
-        // e is the error, an angle between -180 and 180
-
-        i += (e * dt);
-		float de = (e - prevE) / dt;
-		prevE = e;
-
-		double u = (kp * e) + (ki * i) + (kd * de);
-		if (u > 2) {
-			u = 2;
-		}
-		else if (u < -2) {
-			u = -2;
-		}
-		motorL->set(1 - u, dt);
-        motorR->set(1 + u, dt);
-        prevTime = curTime;
-
-        if (empty_wall == 0) {
-            empty_wall = getWallStatus();
-        }
-        else {
-            empty_wall = getWallStatus();
-            // If it went from not 0 to 0, reset counter.
-            if (empty_wall == 0) {
-                distance_count = 0;
-            }
-        }
-
-        if (empty_wall != 0) {
-            distance_count += 1;
-        }
-    }
-
-    float e = 10;
-    while (abs(e) > 0.5) { // Change the distance value.
-        delay(10);
-        float curTime = millis();
-        float dt = curTime - prevTime;
-
-        float diff = ((((int)angle % 360) - ((int)dir % 360)) + 720) % 360;
-        // Diff is the change in orientation, as an angle between 0 and 360
-		e = (diff < 180) ? diff : diff - 360;
-        // e is the error, an angle between -180 and 180
-
-        i += (e * dt);
-		float de = 0;
-		if (prevE != -1000) {
-			de = (e - prevE) / dt;
-		}
-		prevE = e;
-
-		double u = (kp * e) + (ki * i) + (kd * de);
-		if (u > 1) {
-			u = 1;
-		}
-		else if (u < -1) {
-			u = -1;
-		}
-        motorL->set(-u, dt);
-        motorR->set(u, dt);
-        gyroUpdate(dt);
-        prevTime = curTime;
-    }
-    delay(500);
-	resetSteadyState();
-    delay(500);
-    Serial.println(empty_wall);
-    if (empty_wall == 1) {
-        return false;
-    } else if (empty_wall == 2) {
-        return true;
-    } else if (empty_wall == 3) {
-        return (rand() % 2 == 0);
-    } else {
-        return straightUntilNoSideWall();
-    }
-}
-
-
 int getWallStatus() {
     if (isWall(sensor->readLeftIR())) {
         if (isWall(sensor->readRightIR())) {
@@ -357,7 +252,7 @@ int getWallStatus() {
 }
 
 bool isWall(float value) {
-    return (value <= 160 && value >= 60);
+    return (value <= 160 && value >= 55);
 }
 
 void loop() {
@@ -371,40 +266,13 @@ void loop() {
         turn(rand() % 2 == 0);
     } else if (empty_wall == 0) {
     	turn(false);
-    	turn(false);
     }
-	/*Serial.println(sensor->readFrontIR());
 	//straightUntilWall();
 	//turn(true);
-	front();
-	Serial.println(sensor->readFrontIR());
+	/*Serial.println(sensor->readFrontIR());
 	Serial.println(sensor->readLeftIR());
 	Serial.println(sensor->readRightIR());
 	Serial.println("---");
 	delay(100);
-	/*
-	turn(true);
-	turn(false);
-	turn(true);
-	turn(false);
-	turn(true);
-	turn(false);
-	turn(true);
-	turn(false);
-	turn(true);
-	turn(false);
-	float curTime = millis();
-	float dt = (curTime - millis_prev);
-
-	// 1: Update Gyro
-	gyroUpdate(dt);
-
-	// 2: Speed Control
-
-	millis_prev = curTime;
-
-	int dly = 10 - (millis() - curTime);
-	if (delay > 0) {
-		delay(dly);
-	}*/
+	*/
 }
