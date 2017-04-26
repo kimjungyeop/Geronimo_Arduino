@@ -2,7 +2,7 @@
 //This is a automatic generated file
 //Please do not modify this file
 //If you touch this file your change will be overwritten during the next build
-//This file has been generated on 2017-04-25 17:19:25
+//This file has been generated on 2017-04-26 13:17:54
 
 #include "Arduino.h"
 #define M1PWM1 20
@@ -31,8 +31,12 @@ void initSensors() ;
 void setup() ;
 void resetSteadyState() ;
 void turn(bool isLeft) ;
+void front() ;
 void gyroUpdate(float dt) ;
 void straightUntilWall() ;
+bool straightUntilNoSideWall() ;
+int getWallStatus() ;
+bool isWall(float value) ;
 void loop() ;
 
 #include "main.ino"

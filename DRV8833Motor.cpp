@@ -159,11 +159,11 @@ void DRV8833Motor::PIDcontrol(float dt) {
 
 		/*Compute PID Output*/
 		double output = 0.06 * error + iTerm + 0.05 * dInput;
-		if (output > 70) {
-			output = 70;
+		if (output > dt) {
+			output = dt;
 		}
-		else if (output < -70) {
-			output = -70;
+		else if (output < -dt) {
+			output = -dt;
 		}
 		run(output);
 		prevTacho = curTacho;
