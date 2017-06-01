@@ -119,12 +119,12 @@ void resetSteadyState() {
 void turn(bool isLeft) {
 	finishedTurning = false;
 	if (isLeft) {
-		motorL->setPos(890, 80);
-		motorR->setPos(-890, 80);
+		motorL->setPos(885, 80);
+		motorR->setPos(-885, 80);
 	}
 	else {
-		motorL->setPos(-890, 80);
-		motorR->setPos(890, 80);
+		motorL->setPos(-885, 80);
+		motorR->setPos(885, 80);
 	}
 
 	while(motorL->positionControl || motorR->positionControl) {
@@ -151,7 +151,7 @@ void front() {
 void gyroUpdate(float dt) {
 	sensors_event_t gyro_event;
 	gyro.getEvent(&gyro_event);
-	angle = angle + (gyro_event.gyro.z - steadyState) * 57.295779513 * dt / 1000;
+	angle = angle - (gyro_event.gyro.z - steadyState) * 57.295779513 * dt / 1000;
 }
 
 void straightUntilWall() {
@@ -225,11 +225,115 @@ void straightUntilWall() {
     }
     motorL->set(0, dt);
     motorR->set(0, dt);
-    /*motorR->setPos(100, 30);
-    while(motorL->positionControl || motorR->positionControl) {
-		motorR->PIDcontrol(30);
-		delay(10);
-	}*/
+    delay(500);
+	resetSteadyState();
+    delay(500);
+}
+
+void straightUntilSideWall() {
+    angle = 0;
+    float prevTime = millis();
+    float kp = 0.005, ki = 0.00001, kd = 0.00001;
+    float i = 0;
+    float prevE = 0;
+
+    delay(500);
+	resetSteadyState();
+    delay(500);
+    int count = 0;
+    int count2 = 0;
+
+    while (count < 120) { // Change the distance value.
+    	delay(10);
+        float curTime = millis();
+        float dt = curTime - prevTime;
+        gyroUpdate(dt);
+
+        float diff = angle;
+        // Diff is the change in orientation, as an angle between 0 and 360
+		float e = (diff < 180) ? diff : diff - 360;
+        // e is the error, an angle between -180 and 180
+        Serial.println(e);
+        i += (e * dt);
+		float de = (e - prevE) / dt;
+		prevE = e;
+
+		double u = (kp * e) + (ki * i) + (kd * de);
+		if (u > 2) {
+			u = 2;
+		}
+		else if (u < -2) {
+			u = -2;
+		}
+		motorL->set(1 - u, dt);
+        motorR->set(1 + u, dt);
+        prevTime = curTime;
+        count++;
+    }
+    count = 0;
+
+    while (count < 42) { // Change the distance value.
+    	delay(10);
+        float curTime = millis();
+        float dt = curTime - prevTime;
+        gyroUpdate(dt);
+
+        float diff = angle;
+        // Diff is the change in orientation, as an angle between 0 and 360
+		float e = (diff < 180) ? diff : diff - 360;
+        // e is the error, an angle between -180 and 180
+        Serial.println(e);
+        i += (e * dt);
+		float de = (e - prevE) / dt;
+		prevE = e;
+
+		double u = (kp * e) + (ki * i) + (kd * de);
+		if (u > 2) {
+			u = 2;
+		}
+		else if (u < -2) {
+			u = -2;
+		}
+		motorL->set(1 - u, dt);
+        motorR->set(1 + u, dt);
+        prevTime = curTime;
+        if (getWallStatus() != 0) {
+        	count++;
+        }
+    }
+
+    float e = 10;
+    while (abs(e) > 0.5) { // Change the distance value.
+        delay(10);
+        float curTime = millis();
+        float dt = curTime - prevTime;
+        Serial.println(e);
+        float diff = angle;
+        // Diff is the change in orientation, as an angle between 0 and 360
+		e = (diff < 180) ? diff : diff - 360;
+        // e is the error, an angle between -180 and 180
+
+        i += (e * dt);
+		float de = 0;
+		if (prevE != -1000) {
+			de = (e - prevE) / dt;
+		}
+		prevE = e;
+
+		double u = (kp * e) + (ki * i) + (kd * de);
+		if (u > 1) {
+			u = 1;
+		}
+		else if (u < -1) {
+			u = -1;
+		}
+        motorL->set(-u, dt);
+        motorR->set(u, dt);
+        gyroUpdate(dt);
+        prevTime = curTime;
+    }
+    motorL->set(0, dt);
+    motorR->set(0, dt);
     delay(500);
 	resetSteadyState();
     delay(500);
@@ -252,11 +356,11 @@ int getWallStatus() {
 }
 
 bool isWall(float value) {
-    return (value <= 160 && value >= 55);
+    return (value <= 180 && value >= 55);
 }
 
 void loop() {
-	straightUntilWall();
+	straightUntilSideWall();
 	int empty_wall = getWallStatus();
 	if (empty_wall == 1) {
         turn(false);
@@ -267,12 +371,26 @@ void loop() {
     } else if (empty_wall == 0) {
     	turn(false);
     }
+
+	straightUntilWall();
+	empty_wall = getWallStatus();
+	if (empty_wall == 1) {
+        turn(false);
+    } else if (empty_wall == 2) {
+        turn(true);
+    } else if (empty_wall == 3) {
+        turn(rand() % 2 == 0);
+    } else if (empty_wall == 0) {
+    	turn(false);
+    }
+
+
 	//straightUntilWall();
 	//turn(true);
 	/*Serial.println(sensor->readFrontIR());
 	Serial.println(sensor->readLeftIR());
 	Serial.println(sensor->readRightIR());
 	Serial.println("---");
-	delay(100);
-	*/
+	delay(100);*/
+
 }
